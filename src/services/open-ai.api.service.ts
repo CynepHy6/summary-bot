@@ -1,6 +1,4 @@
-import { config, getCompletionStream } from "../deps.ts";
-
-config({ export: true });
+import { getCompletionStream } from "../deps.ts";
 
 export class OpenAiApiService {
   private apiKey: string;
