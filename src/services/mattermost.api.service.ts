@@ -9,6 +9,7 @@ import {
 
 export class MattermostApiService {
   private client: MattermostClient;
+  private maxRate = 5;
 
   constructor(token: string, host: string) {
     this.client = new Client.Client4();
@@ -18,6 +19,10 @@ export class MattermostApiService {
 
   async getPostThread(postId: string): Promise<Thread> {
     return await this.client.getPostThread(postId);
+  }
+
+  setMaxRate(maxRate: number) {
+    this.maxRate = maxRate;
   }
 
   async getThreadInfo(
@@ -97,16 +102,16 @@ export class MattermostApiService {
     channelId: string,
     rootId: string,
     stream: AsyncGenerator<string>,
-    maxRate = 5,
+    prefix?: string,
   ): Promise<void> {
     let replyId: string | undefined = undefined;
 
-    const message = [];
+    const message = prefix ? [`${prefix}: `] : [];
     let count = 0;
     for await (const token of stream) {
       message.push(token);
       count++;
-      if (count > maxRate) {
+      if (count > this.maxRate) {
         count = 0;
         replyId = await this.updateOrCreateThreadReply(
           channelId,
