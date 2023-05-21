@@ -1,8 +1,6 @@
-import { config, serve } from "./deps.ts";
+import { serve } from "./deps.ts";
 import { MattermostApiService } from "./services/mattermost.api.service.ts";
 import { OpenAiApiService } from "./services/open-ai.api.service.ts";
-
-config({ path: "../.env", export: true });
 
 const port = +Deno.env.get("PORT")!;
 const webhookToken = Deno.env.get("MM_BOT_WH_TOKEN");

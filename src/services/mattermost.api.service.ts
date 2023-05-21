@@ -88,31 +88,59 @@ export class MattermostApiService {
 
     return post;
   }
+
+  async getMe(): Promise<void> {
+    return await this.client.getMe();
+  }
+
   async createThreadReplyStream(
     channelId: string,
     rootId: string,
     stream: AsyncGenerator<string>,
+    maxRate = 5,
   ): Promise<void> {
-    const reply = await this.createThreadReply(channelId, rootId, "");
+    let replyId: string | undefined = undefined;
 
     const message = [];
     let count = 0;
     for await (const token of stream) {
       message.push(token);
       count++;
-      if (count > 5) {
+      if (count > maxRate) {
         count = 0;
-        await this.client.patchPost({
-          channel_id: channelId,
-          id: reply.id,
-          message: message.join(""),
-        });
+        replyId = await this.updateOrCreateThreadReply(
+          channelId,
+          rootId,
+          message.join(""),
+          replyId,
+        );
       }
+    }
+
+    await this.updateOrCreateThreadReply(
+      channelId,
+      rootId,
+      message.join(""),
+      replyId,
+    );
+  }
+
+  private async updateOrCreateThreadReply(
+    channelId: string,
+    rootId: string,
+    message: string,
+    replyId?: string,
+  ): Promise<string> {
+    if (!replyId) {
+      const reply = await this.createThreadReply(channelId, rootId, message);
+      return reply.id;
     }
     await this.client.patchPost({
       channel_id: channelId,
-      id: reply.id,
-      message: message.join(""),
+      id: replyId,
+      message: message,
     });
+
+    return replyId;
   }
 }
