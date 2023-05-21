@@ -1,3 +1,5 @@
 temp/
+.env
 .env.*
+!.env.example
 *.log
