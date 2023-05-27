@@ -1,10 +1,10 @@
-import { MessageBody } from "../interfaces.ts";
-import { MattermostApiService } from "./mattermost.api.service.ts";
+import { MessageBody, Post } from "../interfaces.ts";
+import { MattermostBotApiService } from "./mattermost-bot.api.service.ts";
 import { OpenAiApiService } from "./open-ai.api.service.ts";
 
 export class CommandService {
   constructor(
-    private mattermost: MattermostApiService,
+    private mattermostBot: MattermostBotApiService,
     private openAi: OpenAiApiService,
   ) {}
 
@@ -24,19 +24,20 @@ export class CommandService {
     if (command === "analyze!") {
       prefix = "#analysis";
       prompt =
-        "Проанализируйте обсуждение проблемы в треде между несколькими участниками по рабочему вопросу. Опишите основные аргументы каждого участника и их позицию по данной проблеме. Оцените, какие аргументы наиболее весомы и какие могут быть отброшены. Определите, было ли достигнуто согласие или общее понимание проблемы. Исходя из анализа, предложите возможное решение проблемы и опишите, как оно может быть реализовано";
+        "Проанализируй обсуждение проблемы в треде между несколькими участниками по рабочему вопросу. Опиши основные аргументы каждого участника и их позицию по данной проблеме. Оцени, какие аргументы наиболее весомы и какие могут быть отброшены. Определи, было ли достигнуто согласие или общее понимание проблемы. Исходя из анализа, предложи возможное решение проблемы и опиши, как оно может быть реализовано";
     }
-    const { content, rootId, channelId } = await this.mattermost.getThreadInfo(
+    const posts = await this.mattermostBot.getPostThread(
       postId,
-      trigger,
+      (post: Post) => !post.message.includes(trigger),
     );
-
+    const { content, rootId, channelId } = await this.mattermostBot.getThreadInfo(posts);
     if (!content) {
       return;
     }
+    await this.mattermostBot.cleanupThreadFromMe(posts);
 
     const stream = this.openAi.getAiAnswer(`${prompt}: "${content}"`);
-    await this.mattermost.createThreadReplyStream(
+    await this.mattermostBot.createThreadReplyStream(
       channelId,
       rootId,
       stream,

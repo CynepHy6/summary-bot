@@ -2,14 +2,15 @@ import Client from "https://cdn.skypack.dev/-/@mattermost/client@v7.10.0-EsAv9w5
 import {
   MattermostClient,
   Post,
-  Thread,
   ThreadInfo,
+  User,
   Users,
 } from "../interfaces.ts";
 
-export class MattermostApiService {
+export class MattermostBotApiService {
   private client: MattermostClient;
   private maxRate = 5;
+  private me?: User;
 
   constructor(token: string, host: string) {
     this.client = new Client.Client4();
@@ -17,39 +18,42 @@ export class MattermostApiService {
     this.client.setUrl(host);
   }
 
-  async getPostThread(postId: string): Promise<Thread> {
-    return await this.client.getPostThread(postId);
+  async getPostThread(
+    postId: string,
+    filter?: (post: Post) => boolean,
+  ): Promise<Post[]> {
+    const { order, posts } = await this.client.getPostThread(postId);
+    const result = order.map((postId: string) => posts[postId])
+      .sort((a, b) => a.create_at - b.create_at);
+    if (filter) {
+      return result.filter(filter);
+    }
+    return result;
   }
 
   setMaxRate(maxRate: number) {
     this.maxRate = maxRate;
   }
 
-  async getThreadInfo(
-    postId: string,
-    trigger: string,
-  ): Promise<ThreadInfo> {
-    const { order, posts } = await this.getPostThread(postId);
+  async getThreadInfo(posts: Post[]): Promise<ThreadInfo> {
     const userIds: string[] = [];
-    const allPosts = order.map((postId: string) => posts[postId])
-      .map(({ message, create_at, id, channel_id, props, user_id }) => {
+
+    const cleanedPosts = posts.map(
+      ({ message, create_at, id, channel_id, props, user_id }) => {
         if (!userIds.includes(user_id)) {
           userIds.push(user_id);
         }
         return { message, create_at, id, channel_id, props, user_id };
-      })
-      .filter((post) =>
-        !(post.message.includes(trigger) || post.props?.from_bot === "true")
-      )
-      .sort((a, b) => a.create_at - b.create_at);
+      },
+    ).filter((post) => !(post.props?.from_bot === "true"));
 
     const users = await this.getUsersByIds(userIds);
 
     const content: string[] = [];
     let lastUserId: string | undefined = undefined;
     let message: string | undefined = undefined;
-    for (let i = 0; i < allPosts.length; i++) {
-      const post = allPosts[i];
+    for (let i = 0; i < cleanedPosts.length; i++) {
+      const post = cleanedPosts[i];
       if (lastUserId !== post.user_id) {
         if (message) {
           content.push(message);
@@ -61,14 +65,24 @@ export class MattermostApiService {
         message = `${message}. ${post.message}`;
       }
 
-      if (i === allPosts.length - 1) {
+      if (i === cleanedPosts.length - 1) {
         content.push(message);
       }
     }
 
-    const { id: rootId, channel_id: channelId } = allPosts[0];
+    const { id: rootId, channel_id: channelId } = cleanedPosts[0];
 
     return { channelId, rootId, content: content.join("\n") };
+  }
+
+  async cleanupThreadFromMe(posts: Post[] = []): Promise<void> {
+    if (!posts.length) {
+      return;
+    }
+    await this.getMe();
+    const meId = this.me?.id;
+    const mePosts = posts.filter(post => post.user_id === meId);
+    await Promise.all(mePosts.map(post => this.client.deletePost(post.id)));
   }
 
   async getUsersByIds(userIds: string[]): Promise<Users> {
@@ -94,8 +108,11 @@ export class MattermostApiService {
     return post;
   }
 
-  async getMe(): Promise<void> {
-    return await this.client.getMe();
+  async getMe(): Promise<User> {
+    if (!this.me) {
+      this.me = await this.client.getMe();
+    }
+    return this.me;
   }
 
   async createThreadReplyStream(

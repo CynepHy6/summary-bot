@@ -1,18 +1,18 @@
 import { serve } from "./deps.ts";
 import { MessageBody } from "./interfaces.ts";
 import { CommandService } from "./services/command.service.ts";
-import { MattermostApiService } from "./services/mattermost.api.service.ts";
+import { MattermostBotApiService } from "./services/mattermost-bot.api.service.ts";
 import { OpenAiApiService } from "./services/open-ai.api.service.ts";
 
 const port = +Deno.env.get("PORT")!;
 const webhookToken = Deno.env.get("MM_BOT_WH_TOKEN");
 
-const mattermost = new MattermostApiService(
+const mattermostBot = new MattermostBotApiService(
   Deno.env.get("MM_BOT_TOKEN")!,
   Deno.env.get("MM_HOST")!,
 );
 const openAi = new OpenAiApiService(Deno.env.get("OPEN_AI_KEY")!);
-const commander = new CommandService(mattermost, openAi);
+const commander = new CommandService(mattermostBot, openAi);
 
 async function handler(req: Request): Promise<Response> {
   const body: MessageBody = await req.json();

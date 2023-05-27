@@ -94,5 +94,6 @@ export interface MattermostClient {
     has_reactions?: boolean;
     props?: string;
   }): Promise<Post>;
-  getMe(): Promise<void>;
+  getMe(): Promise<User>;
+  deletePost(postId: string): Promise<void>;
 }
