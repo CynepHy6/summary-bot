@@ -1,0 +1,34 @@
+version: '3.7'
+
+services:
+  db:
+    image: postgres:12
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mattermost
+      POSTGRES_PASSWORD: mattermost
+      POSTGRES_DB: mattermost
+    volumes:
+      - ./temp/volumes/db:/var/lib/postgresql/data
+      
+  mattermost:
+    image: mattermost/mattermost-team-edition:latest
+    restart: unless-stopped
+    volumes:
+      - ./temp/volumes/app/mattermost/config:/mattermost/config:rw
+      - ./temp/volumes/app/mattermost/data:/mattermost/data:rw
+      - ./temp/volumes/app/mattermost/logs:/mattermost/logs:rw
+    environment:
+      - MM_USERNAME=mmuser
+      - MM_PASSWORD=mmpassword
+      - MM_EMAIL=youremail@example.com
+      - MM_SITEURL=mm.local
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://mattermost:mattermost@db/mattermost?sslmode=disable
+   
+    ports:
+      - "8065:80"
+    extra_hosts:
+    - "mm-bot.local:host-gateway"
+    depends_on:
+      - db
