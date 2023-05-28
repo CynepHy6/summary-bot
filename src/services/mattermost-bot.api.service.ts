@@ -29,7 +29,10 @@ export class MattermostBotApiService {
       collapsedThreadsExtended: false,
       fetchAll: true,
     };
-    const { order, posts } = await this.client.getPaginatedPostThread(postId, defaultOptions);
+    const { order, posts } = await this.client.getPaginatedPostThread(
+      postId,
+      defaultOptions,
+    );
     const result = order.map((postId: string) => posts[postId])
       .sort((a, b) => a.create_at - b.create_at);
     if (filter) {
@@ -125,24 +128,32 @@ export class MattermostBotApiService {
   async createThreadReplyStream(
     channelId: string,
     rootId: string,
-    stream: AsyncGenerator<string>,
+    streams: AsyncGenerator<string>[],
     prefix?: string,
-  ): Promise<void> {
-    let replyId: string | undefined = undefined;
-
+    replyId?: string,
+  ): Promise<{ summary: string; replyId: string } | undefined> {
     const message = prefix ? [`${prefix}: `] : [];
-    let count = 0;
-    for await (const token of stream) {
-      message.push(token);
-      count++;
-      if (count > this.maxRate) {
-        count = 0;
-        replyId = await this.updateOrCreateThreadReply(
-          channelId,
-          rootId,
-          message.join(""),
-          replyId,
-        );
+    for await (const stream of streams) {
+      let count = 0;
+      try {
+        for await (const token of stream) {
+          message.push(token);
+          count++;
+          if (count > this.maxRate) {
+            count = 0;
+            replyId = await this.updateOrCreateThreadReply(
+              channelId,
+              rootId,
+              message.join(""),
+              replyId,
+            );
+          }
+        }
+      } catch (error) {
+        if (error.code === "ERR_STREAM_PREMATURE_CLOSE") {
+          // игнорируем ошибку завершенного стрима
+          continue;
+        }
       }
     }
 
@@ -152,6 +163,10 @@ export class MattermostBotApiService {
       message.join(""),
       replyId,
     );
+
+    return streams.length > 1
+      ? { summary: message.join(""), replyId: replyId! }
+      : undefined;
   }
 
   private async updateOrCreateThreadReply(
