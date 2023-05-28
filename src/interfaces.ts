@@ -77,10 +77,23 @@ export interface Users {
   [key: string]: User;
 }
 
+export interface PaginatedPostOptions {
+  fetchThreads?: boolean;
+  collapsedThreads?: boolean;
+  collapsedThreadsExtended?: boolean;
+  direction?: string;
+  fetchAll?: boolean;
+  perPage?: number;
+}
+
 export interface MattermostClient {
   setToken(token: string): void;
   setUrl(host: string): void;
   getPostThread: (postId: string) => Promise<Thread>;
+  getPaginatedPostThread: (
+    postId: string,
+    options: PaginatedPostOptions,
+  ) => Promise<Thread>;
   getThreadInfo: (postId: string, trigger: string) => Promise<ThreadInfo>;
   getProfilesByIds(userIds: string[]): Promise<User[]>;
   createPost(

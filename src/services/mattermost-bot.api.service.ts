@@ -1,6 +1,7 @@
 import Client from "https://cdn.skypack.dev/-/@mattermost/client@v7.10.0-EsAv9w5r3ibkv7QGOIbO/dist=es2019,mode=imports/optimized/@mattermost/client.js";
 import {
   MattermostClient,
+  PaginatedPostOptions,
   Post,
   ThreadInfo,
   User,
@@ -22,7 +23,13 @@ export class MattermostBotApiService {
     postId: string,
     filter?: (post: Post) => boolean,
   ): Promise<Post[]> {
-    const { order, posts } = await this.client.getPostThread(postId);
+    const defaultOptions: PaginatedPostOptions = {
+      fetchThreads: true,
+      collapsedThreads: false,
+      collapsedThreadsExtended: false,
+      fetchAll: true,
+    };
+    const { order, posts } = await this.client.getPaginatedPostThread(postId, defaultOptions);
     const result = order.map((postId: string) => posts[postId])
       .sort((a, b) => a.create_at - b.create_at);
     if (filter) {
@@ -81,8 +88,8 @@ export class MattermostBotApiService {
     }
     await this.getMe();
     const meId = this.me?.id;
-    const mePosts = posts.filter(post => post.user_id === meId);
-    await Promise.all(mePosts.map(post => this.client.deletePost(post.id)));
+    const mePosts = posts.filter((post) => post.user_id === meId);
+    await Promise.all(mePosts.map((post) => this.client.deletePost(post.id)));
   }
 
   async getUsersByIds(userIds: string[]): Promise<Users> {
