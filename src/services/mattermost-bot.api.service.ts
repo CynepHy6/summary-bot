@@ -133,36 +133,49 @@ export class MattermostBotApiService {
     replyId?: string,
   ): Promise<{ summary: string; replyId: string } | undefined> {
     const message = prefix ? [`${prefix}: `] : [];
-    for await (const stream of streams) {
-      let count = 0;
-      try {
-        for await (const token of stream) {
-          message.push(token);
-          count++;
-          if (count > this.maxRate) {
-            count = 0;
-            replyId = await this.updateOrCreateThreadReply(
-              channelId,
-              rootId,
-              message.join(""),
-              replyId,
-            );
+    // TODO отрефакторить это
+    if (streams.length > 1) {
+      replyId = await this.updateOrCreateThreadReply(
+        channelId,
+        rootId,
+        ":loading:",
+        replyId,
+      );
+      for await (const stream of streams) {
+        try {
+          for await (const token of stream) {
+            message.push(token);
+          }
+        } catch (error) {
+          if (error.code === "ERR_STREAM_PREMATURE_CLOSE") {
+            // игнорируем ошибку завершенного стрима
+            continue;
           }
         }
-      } catch (error) {
-        if (error.code === "ERR_STREAM_PREMATURE_CLOSE") {
-          // игнорируем ошибку завершенного стрима
-          continue;
+      }
+    } else {
+      let count = 0;
+      for await (const token of streams[0]) {
+        message.push(token);
+        count++;
+        if (count > this.maxRate) {
+          count = 0;
+          replyId = await this.updateOrCreateThreadReply(
+            channelId,
+            rootId,
+            message.join(""),
+            replyId,
+          );
         }
       }
+      await this.updateOrCreateThreadReply(
+        channelId,
+        rootId,
+        message.join(""),
+        replyId,
+      );
     }
 
-    await this.updateOrCreateThreadReply(
-      channelId,
-      rootId,
-      message.join(""),
-      replyId,
-    );
 
     return streams.length > 1
       ? { summary: message.join(""), replyId: replyId! }
