@@ -7,7 +7,7 @@ export class OpenAiApiService {
     this.apiKey = apiKey;
   }
 
-  async *getAiAnswer(prompt: string): AsyncGenerator<string> {
+  async *getStream(prompt: string): AsyncGenerator<string> {
     const stream = getCompletionStream({
       apiKey: this.apiKey,
       messages: [

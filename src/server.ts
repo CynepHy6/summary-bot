@@ -15,7 +15,16 @@ const openAi = new OpenAiApiService(Deno.env.get("OPEN_AI_KEY")!);
 const commander = new CommandService(mattermostBot, openAi);
 
 async function handler(req: Request): Promise<Response> {
-  const body: MessageBody = await req.json();
+  let body: MessageBody | null = null;
+  try {
+    body = await req.json();
+  } catch {
+    console.error('json parse error', await req.text())
+  }
+  if (!body) {
+    console.error("invalid body");
+    return new Response(null, { status: 401 });
+  }
   if (body?.token !== webhookToken) {
     console.error("invalid webhook token");
     return new Response(null, { status: 401 });

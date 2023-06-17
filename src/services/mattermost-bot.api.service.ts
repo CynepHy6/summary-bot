@@ -19,6 +19,12 @@ export class MattermostBotApiService {
     this.client.setUrl(host);
   }
 
+  async getPost(postId: string): Promise<Post> {
+     const post = await this.client.getPost(postId);
+
+    return post;
+  }
+  
   async getPostThread(
     postId: string,
     filter?: (post: Post) => boolean,
@@ -85,13 +91,13 @@ export class MattermostBotApiService {
     return { channelId, rootId, content: content.join("\n") };
   }
 
-  async cleanupThreadFromMe(posts: Post[] = []): Promise<void> {
+  async cleanupThreadFromMe(posts: Post[] = [], prefix?: string): Promise<void> {
     if (!posts.length) {
       return;
     }
     await this.getMe();
     const meId = this.me?.id;
-    const mePosts = posts.filter((post) => post.user_id === meId);
+    const mePosts = posts.filter((post) => post.user_id === meId && (prefix !== undefined ? post.message.startsWith(prefix) : false));
     await Promise.all(mePosts.map((post) => this.client.deletePost(post.id)));
   }
 
@@ -132,34 +138,30 @@ export class MattermostBotApiService {
     prefix?: string,
     replyId?: string,
   ): Promise<{ summary: string; replyId: string } | undefined> {
-    const message = prefix ? [`${prefix}: `] : [];
-    // TODO отрефакторить это
-    if (streams.length > 1) {
-      replyId = await this.updateOrCreateThreadReply(
-        channelId,
-        rootId,
-        ":loading:",
-        replyId,
-      );
-      for await (const stream of streams) {
-        try {
-          for await (const token of stream) {
-            message.push(token);
-          }
-        } catch (error) {
-          if (error.code === "ERR_STREAM_PREMATURE_CLOSE") {
-            // игнорируем ошибку завершенного стрима
-            continue;
+    const message = prefix ? [prefix] : [];
+    replyId = await this.updateOrCreateThreadReply(
+      channelId,
+      rootId,
+      message.join(""),
+      replyId,
+    );
+    for await (const stream of streams) {
+      try {
+        let count = 0;
+        for await (const token of stream) {
+          message.push(token);
+          count++;
+          if (count > this.maxRate) {
+            count = 0;
+            replyId = await this.updateOrCreateThreadReply(
+              channelId,
+              rootId,
+              message.join(""),
+              replyId,
+            );
           }
         }
-      }
-    } else {
-      let count = 0;
-      for await (const token of streams[0]) {
-        message.push(token);
-        count++;
-        if (count > this.maxRate) {
-          count = 0;
+        if (count > 0) {
           replyId = await this.updateOrCreateThreadReply(
             channelId,
             rootId,
@@ -167,13 +169,13 @@ export class MattermostBotApiService {
             replyId,
           );
         }
+      } catch (error) {
+        if (error.code === "ERR_STREAM_PREMATURE_CLOSE") {
+          // игнорируем ошибку завершенного стрима
+          console.log(error);
+          continue;
+        }
       }
-      await this.updateOrCreateThreadReply(
-        channelId,
-        rootId,
-        message.join(""),
-        replyId,
-      );
     }
 
 
