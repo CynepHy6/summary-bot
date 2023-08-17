@@ -2,7 +2,7 @@ import {
   chunkTextByTokenLimit,
   isTextExpensiveCost,
   lastTextByTokenLimit,
-} from "../helpers.ts";
+} from "../command.helper.ts";
 import { MessageBody, Post } from "../interfaces.ts";
 import { MattermostBotApiService } from "./mattermost-bot.api.service.ts";
 import { OpenAiApiService } from "./open-ai.api.service.ts";
@@ -43,7 +43,7 @@ export class CommandService {
     if (isTextExpensiveCost(prompt)) {
       return;
     }
-    const prefix = '```\n'+prompt+'\n```\n';
+    const prefix = "```\n" + prompt + "\n```\n";
     const reply = await this.mattermostBot.createThreadReply(
       channelId,
       rootId,

@@ -7,6 +7,7 @@ import {
   User,
   Users,
 } from "../interfaces.ts";
+import { getPostsUserIds } from "../mattermost.helper.ts";
 
 export class MattermostBotApiService {
   private client: MattermostClient;
@@ -20,11 +21,11 @@ export class MattermostBotApiService {
   }
 
   async getPost(postId: string): Promise<Post> {
-     const post = await this.client.getPost(postId);
+    const post = await this.client.getPost(postId);
 
     return post;
   }
-  
+
   async getPostThread(
     postId: string,
     filter?: (post: Post) => boolean,
@@ -39,7 +40,8 @@ export class MattermostBotApiService {
       postId,
       defaultOptions,
     );
-    const result = order.map((postId: string) => posts[postId])
+    const result = order
+      .map((postId: string) => posts[postId])
       .sort((a, b) => a.create_at - b.create_at);
     if (filter) {
       return result.filter(filter);
@@ -52,16 +54,11 @@ export class MattermostBotApiService {
   }
 
   async getThreadInfo(posts: Post[]): Promise<ThreadInfo> {
-    const userIds: string[] = [];
-
-    const cleanedPosts = posts.map(
-      ({ message, create_at, id, channel_id, props, user_id }) => {
-        if (!userIds.includes(user_id)) {
-          userIds.push(user_id);
-        }
-        return { message, create_at, id, channel_id, props, user_id };
-      },
-    ).filter((post) => !(post.props?.from_bot === "true"));
+    const cleanedPosts = [
+      ...posts.slice(0, 1),
+      ...posts.slice(1).filter((post) => !(post.props?.from_bot === "true")),
+    ];
+    const userIds = getPostsUserIds(cleanedPosts);
 
     const users = await this.getUsersByIds(userIds);
 
@@ -91,13 +88,20 @@ export class MattermostBotApiService {
     return { channelId, rootId, content: content.join("\n") };
   }
 
-  async cleanupThreadFromMe(posts: Post[] = [], prefix?: string): Promise<void> {
+  async cleanupThreadFromMe(
+    posts: Post[] = [],
+    prefix?: string,
+  ): Promise<void> {
     if (!posts.length) {
       return;
     }
     await this.getMe();
     const meId = this.me?.id;
-    const mePosts = posts.filter((post) => post.user_id === meId && (prefix !== undefined ? post.message.startsWith(prefix) : false));
+    const mePosts = posts.filter(
+      (post) =>
+        post.user_id === meId &&
+        (prefix !== undefined ? post.message.startsWith(prefix) : false),
+    );
     await Promise.all(mePosts.map((post) => this.client.deletePost(post.id)));
   }
 
@@ -177,7 +181,6 @@ export class MattermostBotApiService {
         }
       }
     }
-
 
     return streams.length > 1
       ? { summary: message.join(""), replyId: replyId! }
