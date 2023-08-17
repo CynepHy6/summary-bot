@@ -61,7 +61,7 @@ export class CommandService {
 
   private async createThreadSummary(postId: string, trigger: string) {
     const prefix = "#summary: ";
-    const prompt = "tl;dr";
+    const prompt = (content: string) => `${content}\n TLDR:`;
 
     const posts = await this.mattermostBot.getPostThread(
       postId,
@@ -76,7 +76,7 @@ export class CommandService {
 
     const chunkedContent = chunkTextByTokenLimit(content);
     const streams = chunkedContent.map(
-      (content) => this.openAi.getStream(`${prompt}: "${content}"`),
+      (content) => this.openAi.getStream(prompt(content)),
     );
 
     const result = await this.mattermostBot.createThreadReplyStream(
@@ -91,7 +91,7 @@ export class CommandService {
       // TODO зарефакторить это
       const chunkedContent = chunkTextByTokenLimit(summary);
       const streams = chunkedContent.map(
-        (content) => this.openAi.getStream(`${prompt}: "${content}"`),
+        (content) => this.openAi.getStream(prompt(content)),
       );
       await this.mattermostBot.createThreadReplyStream(
         channelId,
@@ -103,8 +103,8 @@ export class CommandService {
     }
   }
   private async createThreadSummaryLast(postId: string, trigger: string) {
-    const prompt = "tl;dr";
     const prefix = "#summary: ";
+    const prompt = (content: string) => `${content}\n TLDR:`;
 
     const posts = await this.mattermostBot.getPostThread(
       postId,
@@ -118,7 +118,7 @@ export class CommandService {
     await this.mattermostBot.cleanupThreadFromMe(posts, prefix);
 
     const lastContent = lastTextByTokenLimit(content);
-    const stream = this.openAi.getStream(`${prompt}: "${lastContent}"`);
+    const stream = this.openAi.getStream(prompt(lastContent));
 
     await this.mattermostBot.createThreadReplyStream(
       channelId,

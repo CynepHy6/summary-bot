@@ -13,7 +13,8 @@ export class OpenAiApiService {
       messages: [
         {
           "role": "system",
-          "content": "You are helpful assistant. You answer only in Russian",
+          "content":
+            "You are assistant who replies with a clear and concise summary to every message. You answer only in Russian",
         },
         { "role": "user", "content": prompt },
       ],
