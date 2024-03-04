@@ -1,7 +1,7 @@
 import sbd from "npm:sbd@1.0.19";
 import { encode } from "npm:gpt-3-encoder@1.1.4";
 
-const LIMIT = 4096;
+const DEFAULT_MAX_TOKENS = 4096;
 
 export function arrayChunk<T>(arr: T[], size: number): T[][] {
   const result: T[][] = [];
@@ -11,7 +11,10 @@ export function arrayChunk<T>(arr: T[], size: number): T[][] {
   return result;
 }
 
-export function chunkTextByTokenLimit(text: string, limit = LIMIT): string[] {
+export function chunkTextByTokenLimit(
+  text: string,
+  limit = DEFAULT_MAX_TOKENS
+): string[] {
   const sentences = sbd.sentences(cleanText(text));
 
   const result: string[] = [];
@@ -34,7 +37,10 @@ export function chunkTextByTokenLimit(text: string, limit = LIMIT): string[] {
   return result;
 }
 
-export function lastTextByTokenLimit(text: string, limit = LIMIT): string {
+export function lastTextByTokenLimit(
+  text: string,
+  limit = DEFAULT_MAX_TOKENS
+): string {
   const sentences = sbd.sentences(cleanText(text));
 
   const result: string[] = [];
@@ -61,7 +67,10 @@ function cleanText(text: string): string {
   return text.replace(/\[.*?\]\(.*?\)/g, "");
 }
 
-export function isTextExpensiveCost(text: string, limit = LIMIT): boolean {
+export function isTextExpensiveCost(
+  text: string,
+  limit = DEFAULT_MAX_TOKENS
+): boolean {
   const tokens = encode(text);
   return tokens.length > limit;
 }

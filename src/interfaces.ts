@@ -87,14 +87,16 @@ export interface PaginatedPostOptions {
 }
 
 export interface MattermostClient {
-  createPost(
-    options: { channel_id: string; message: string; root_id: string },
-  ): Promise<Post>;
+  createPost(options: {
+    channel_id: string;
+    message: string;
+    root_id: string;
+  }): Promise<Post>;
   deletePost(postId: string): Promise<void>;
   getMe(): Promise<User>;
   getPaginatedPostThread: (
     postId: string,
-    options: PaginatedPostOptions,
+    options: PaginatedPostOptions
   ) => Promise<Thread>;
   getPost(postId: string): Promise<Post>;
   getPostThread: (postId: string) => Promise<Thread>;
@@ -110,4 +112,9 @@ export interface MattermostClient {
   }): Promise<Post>;
   setToken(token: string): void;
   setUrl(host: string): void;
+}
+
+export interface Message {
+  role: "user" | "assistant" | "system";
+  content: string;
 }

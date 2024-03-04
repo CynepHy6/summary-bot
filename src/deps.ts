@@ -1,5 +1,8 @@
-export { serve } from "https://deno.land/std@0.188.0/http/server.ts";
-export { getCompletionStream } from "https://deno.land/x/openai_chat_stream@1.0.2/mod.ts";
+export { serve } from "https://deno.land/std@0.218.2/http/server.ts";
+export { TextLineStream } from "https://deno.land/std@0.218.2/streams/text_line_stream.ts";
 
-import { load } from "https://deno.land/std@0.188.0/dotenv/mod.ts";
-await load({ export: true });
+import { loadSync } from "https://deno.land/std@0.218.2/dotenv/mod.ts";
+await loadSync({
+  envPath: "/root/summary-bot/.env",
+  export: true,
+});
