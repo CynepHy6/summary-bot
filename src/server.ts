@@ -5,8 +5,9 @@ import { MattermostBotApiService } from "./services/mattermost-bot.api.service.t
 import { ChatAiApiService } from "./services/chat-ai.api.service.ts";
 
 // https://vsegpt.ru/Docs/ModelsNew
-const chatAiModel = "mistralai/mixtral-8x7b-instruct";
-const chatAiMaxTokens = 32768;
+// const chatAiModel = "mistralai/mixtral-8x7b-instruct"; // 32768?
+const chatAiModel = "openai/gpt-3.5-turbo-1106";
+const chatAiMaxTokens = 4096;
 
 const chatAiBaseUrl = Deno.env.get("CHAT_AI_BASE_URL")!;
 const chatAiKey = Deno.env.get("CHAT_AI_KEY")!;

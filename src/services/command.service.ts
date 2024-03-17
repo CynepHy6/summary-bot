@@ -36,7 +36,6 @@ export class CommandService {
     return;
   }
   private async createPromptReply(postId: string, text: string): Promise<void> {
-    console.error("START");
     const prompt = text.replace(Command.Prompt, "");
     const post = await this.mattermostBot.getPost(postId);
     const channelId = post.channel_id;

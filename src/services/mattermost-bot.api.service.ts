@@ -28,7 +28,7 @@ export class MattermostBotApiService {
 
   async getPostThread(
     postId: string,
-    filter?: (post: Post) => boolean,
+    filter?: (post: Post) => boolean
   ): Promise<Post[]> {
     const defaultOptions: PaginatedPostOptions = {
       fetchThreads: true,
@@ -38,7 +38,7 @@ export class MattermostBotApiService {
     };
     const { order, posts } = await this.client.getPaginatedPostThread(
       postId,
-      defaultOptions,
+      defaultOptions
     );
     const result = order
       .map((postId: string) => posts[postId])
@@ -90,7 +90,7 @@ export class MattermostBotApiService {
 
   async cleanupThreadFromMe(
     posts: Post[] = [],
-    prefix?: string,
+    prefix?: string
   ): Promise<void> {
     if (!posts.length) {
       return;
@@ -100,7 +100,7 @@ export class MattermostBotApiService {
     const mePosts = posts.filter(
       (post) =>
         post.user_id === meId &&
-        (prefix !== undefined ? post.message.startsWith(prefix) : false),
+        (prefix !== undefined ? post.message.startsWith(prefix) : false)
     );
     await Promise.all(mePosts.map((post) => this.client.deletePost(post.id)));
   }
@@ -110,14 +110,14 @@ export class MattermostBotApiService {
 
     return usersArr.reduce(
       (users, user) => ({ ...users, [user.id]: user }),
-      {} as Users,
+      {} as Users
     );
   }
 
   async createThreadReply(
     channelId: string,
     rootId: string,
-    message: string,
+    message: string
   ): Promise<Post> {
     const post = await this.client.createPost({
       channel_id: channelId,
@@ -140,14 +140,14 @@ export class MattermostBotApiService {
     rootId: string,
     streams: AsyncGenerator<string>[],
     prefix?: string,
-    replyId?: string,
+    replyId?: string
   ): Promise<{ summary: string; replyId: string } | undefined> {
     const message = prefix ? [prefix] : [];
     replyId = await this.updateOrCreateThreadReply(
       channelId,
       rootId,
       message.join(""),
-      replyId,
+      replyId
     );
     for await (const stream of streams) {
       try {
@@ -161,7 +161,7 @@ export class MattermostBotApiService {
               channelId,
               rootId,
               message.join(""),
-              replyId,
+              replyId
             );
           }
         }
@@ -170,7 +170,7 @@ export class MattermostBotApiService {
             channelId,
             rootId,
             message.join(""),
-            replyId,
+            replyId
           );
         }
       } catch (error) {
@@ -191,7 +191,7 @@ export class MattermostBotApiService {
     channelId: string,
     rootId: string,
     message: string,
-    replyId?: string,
+    replyId?: string
   ): Promise<string> {
     if (!replyId) {
       const reply = await this.createThreadReply(channelId, rootId, message);

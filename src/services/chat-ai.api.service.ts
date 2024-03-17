@@ -13,7 +13,8 @@ export class ChatAiApiService {
       messages: [
         {
           role: "system",
-          content: "answer only in Russian and text format",
+          content:
+            "You are assistant who replies with a clear and concise summary to every message. You answer only in Russian",
         },
         { role: "user", content: prompt },
       ],
